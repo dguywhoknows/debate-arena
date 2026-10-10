@@ -1,0 +1,16 @@
+{
+  "name": "debate-simulator",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Two AI personas debate any motion in parliamentary format while an AI adjudicator scores the clash.",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "test": "node tests/run-node.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dguywhoknows/debate-simulator.git"
+  },
+  "homepage": "https://dguywhoknows.github.io/debate-simulator/",
+  "license": "MIT"
+}
