@@ -23,6 +23,7 @@ const STYLES = {
 let D = null;
 let running = false;
 let library = store.get('debate.library', []);
+let personas = store.get('debate.personas', { pro: '', con: '' });
 
 $('#randomMotion').onclick = () => { $('#motion').value = MOTIONS[Math.floor(Math.random() * MOTIONS.length)]; };
 $('#mode').onchange = () => $('#humanSideRow').classList.toggle('hidden', $('#mode').value !== 'human');
@@ -34,7 +35,7 @@ const transcriptText = () => D.transcript.map((t) => `[${t.side === 'pro' ? 'PRO
 function turnCard(t) {
   const body = h('div', { class: 'body typing' });
   const card = h('article', { class: 'card turn ' + t.side },
-    h('div', { class: 'who' }, h('b', { class: 'side-' + t.side }, (t.side === 'pro' ? '🟦 ' : '🟥 ') + t.name + (t.human ? ' (you)' : '')), h('span', { class: 'tag' }, t.phase)),
+    h('div', { class: 'who' }, h('b', { class: 'side-' + t.side }, t.name + (t.human ? ' (you)' : '')), h('span', { class: 'tag' }, t.phase)),
     body);
   return { card, body };
 }
@@ -90,7 +91,8 @@ $('#start').onclick = (e) => busy(e.currentTarget, async () => {
         const sys = `You are ${D.names[side]}, debating on the ${side === 'pro' ? 'PROPOSITION (for)' : 'OPPOSITION (against)'} side of the motion: "${motion}".
 Your opponent is ${D.names[side === 'pro' ? 'con' : 'pro']}${human ? ' (a human debater: engage seriously with their actual points)' : ''}.
 This is your ${phase} speech. ${phase === 'Opening' ? 'Lay out 2-3 strong arguments.' : phase.startsWith('Rebuttal') ? 'Directly attack the opponent\'s latest points by name, then reinforce your case.' : 'Summarize the key clashes and why your side won them. No new arguments.'}
-Style: ${STYLES[D.style]}
+Style: ${STYLES[D.style]}${personas[side] ? `
+Persona: argue as ${personas[side]}. Let that perspective shape your arguments, evidence and tone.` : ''}
 Stay in character. 90-150 words. No headings, no stage directions, no markdown.`;
         t.text = await AI.chat(
           [{ role: 'system', content: sys }, { role: 'user', content: D.transcript.length ? 'Debate so far:\n\n' + transcriptText() + '\n\nYour turn.' : 'You speak first. Begin.' }],
@@ -138,7 +140,7 @@ function renderVerdict() {
     <h2>Judge's verdict</h2>
     <div class="scoreboard">
       <div>
-        <div class="winner side-${w}">🏆 ${esc(names[w])} win${names[w] === 'You' ? '' : 's'}</div>
+        <div class="winner side-${w}">${esc(names[w])} win${names[w] === 'You' ? '' : 's'}</div>
         <p class="muted">${esc(v.margin || '')} decision · Pro ${totalScore(v.scores, 'pro')}/40 · Con ${totalScore(v.scores, 'con')}/40</p>
         <p>${esc(v.reasoning || '')}</p>
       </div>
@@ -187,7 +189,7 @@ function renderFacts() {
   const st = factStats(D.checks);
   const el = $('#facts');
   el.classList.remove('hidden');
-  const icon = { supported: '✅', disputed: '⚠️', unverifiable: '❔', false: '❌' };
+  const icon = { supported: 'True', disputed: 'Disputed', unverifiable: 'Unclear', false: 'False' };
   el.innerHTML = `<h2>Fact check</h2>
     <div class="grid cols-2"><div class="stat"><div class="k side-pro">${esc(D.names.pro)} credibility</div><div class="v">${st.pro.credibility ?? '—'}${st.pro.credibility != null ? '%' : ''}</div></div><div class="stat"><div class="k side-con">${esc(D.names.con)} credibility</div><div class="v">${st.con.credibility ?? '—'}${st.con.credibility != null ? '%' : ''}</div></div></div>
     <div style="margin-top:10px">${D.checks.map((c) => `<div class="fc"><span>${icon[c.verdict] || '•'}</span><div><b class="side-${c.side}">${c.side === 'pro' ? 'Pro' : 'Con'}:</b> ${esc(c.claim)}<div class="small muted">${esc(c.verdict)} · ${esc(c.note)}</div></div></div>`).join('')}</div>
@@ -207,7 +209,7 @@ function renderLibrary() {
   library.forEach((d) => box.append(h('div', { class: 'lib-item' },
     h('div', { class: 'grow' }, h('div', { class: 'small', style: 'font-weight:600' }, d.motion), h('div', { class: 'small muted' }, `${new Date(d.id).toLocaleDateString()} · ${d.verdict ? `${d.names[d.verdict.winner]} won` : 'unfinished'}${d.human ? ' · you played' : ''}`)),
     h('button', { class: 'btn sm ghost', onclick: () => openDebate(d) }, 'Open'),
-    h('button', { class: 'btn sm ghost danger', 'aria-label': 'Delete', onclick: () => { library = library.filter((x) => x !== d); store.set('debate.library', library); renderLibrary(); } }, '✕'))));
+    h('button', { class: 'btn sm ghost danger', 'aria-label': 'Delete', onclick: () => { library = library.filter((x) => x !== d); store.set('debate.library', library); renderLibrary(); } }, 'Delete'))));
 }
 function openDebate(d) {
   D = d;
@@ -224,3 +226,20 @@ function openDebate(d) {
 
 $('#export').onclick = () => download('debate.md', debateMarkdown(D), 'text/markdown');
 renderLibrary();
+
+/* ================= AI command box ================= */
+const sideOf = (x) => (/^(con|opp|against|no)/i.test(String(x)) ? 'con' : 'pro');
+Copilot.register({
+  context: () => `Motion field: ${$('#motion').value || 'empty'}. ${D ? `Current debate "${D.motion}": ${D.transcript.length} speeches so far${running ? ' (in progress)' : ''}, ${D.verdict ? `judged: ${D.names[D.verdict.winner]} won` : 'not judged yet'}.` : 'No debate yet.'} Personas: pro "${personas.pro || 'default'}", con "${personas.con || 'default'}". Style ${$('#style').value}, rebuttal rounds ${$('#rounds').value}.`,
+  actions: [
+    { name: 'start_debate', description: 'Set the motion and options, then start the debate (it plays out on screen)', params: { motion: 'a "This house..." motion', rounds: 'rebuttal rounds 1-3', style: Object.keys(STYLES).join(' | '), pro_name: 'optional', con_name: 'optional', you_argue: 'optional pro | con to debate as a human' },
+      run: ({ motion, rounds, style, pro_name, con_name, you_argue }) => { if (running) throw new Error('A debate is already running'); if (motion) $('#motion').value = /^this house/i.test(motion) ? motion : `This house believes ${motion.replace(/^(whether|that)\s+/i, '').replace(/\?$/, '')}.`; if (rounds) $('#rounds').value = String(Math.max(1, Math.min(3, +rounds))); if (STYLES[style]) $('#style').value = style; if (pro_name) $('#proName').value = pro_name; if (con_name) $('#conName').value = con_name; $('#mode').value = you_argue ? 'human' : $('#mode').options[0].value; if (you_argue) $('#humanSide').value = sideOf(you_argue); $('#mode').onchange(); $('#start').click(); return `Debating: ${$('#motion').value}`; } },
+    { name: 'set_persona', description: 'Change who a side argues as, e.g. "a skeptical economist". Applies from the next speech, including mid-debate. Empty text resets it.', params: { side: 'pro | con', persona: 'description' },
+      run: ({ side, persona }) => { const s = sideOf(side); personas[s] = String(persona || '').trim(); store.set('debate.personas', personas); return `${s === 'pro' ? 'Proposition' : 'Opposition'} ${personas[s] ? 'now argues as ' + personas[s] : 'persona reset'}`; } },
+    { name: 'fact_check', description: 'Fact-check claims in the finished debate', params: {}, run: async () => { if (!D?.verdict) throw new Error('Finish a debate first'); await factCheck(); return `${D.checks.length} claims checked`; } },
+    { name: 'audience_vote', description: 'Record how much the audience agrees after the debate (Oxford swing)', params: { percent_for: '0-100' }, run: ({ percent_for }) => { $('#postVote').value = percent_for; $('#postVote').oninput(); $('#castPost').click(); const s = voteSwing(D.votes.pre, D.votes.post); return s.winner === 'tie' ? 'No swing' : `${D.names[s.winner]} win the room (${s.label})`; } },
+    { name: 'standings', query: true, description: 'Look up the transcript, speaking stats and the judge\'s scores to say who is ahead', params: {},
+      run: () => { if (!D) throw new Error('No debate yet'); const agg = { pro: '', con: '' }; D.transcript.forEach((t) => (agg[t.side] += ' ' + t.text)); return JSON.stringify({ motion: D.motion, names: D.names, verdict: D.verdict ? { winner: D.verdict.winner, margin: D.verdict.margin, pro: totalScore(D.verdict.scores, 'pro'), con: totalScore(D.verdict.scores, 'con'), clashes: D.verdict.clashes, reasoning: D.verdict.reasoning } : 'not judged yet', stats: { pro: analyze(agg.pro, D.names.con), con: analyze(agg.con, D.names.pro) }, transcript: transcriptText().slice(-5000) }); } },
+    { name: 'export_transcript', description: 'Download the debate as Markdown', params: {}, run: () => { $('#export').click(); return 'Downloaded debate.md'; } },
+  ],
+});

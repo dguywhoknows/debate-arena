@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" data-gate="app">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debate Arena</title>
+<meta name="description" content="Two AI personas debate any motion while an AI judge scores the clash. Local rhetoric analytics included.">
+<meta name="app-repo" content="https://github.com/dguywhoknows/debate-simulator">
+<meta name="app-version" content="2.0.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23d6533c'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Arial%2CHelvetica%2Csans-serif' font-weight='700' font-size='13' fill='white'%3EDA%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/app.css">
+<script src="src/lib/config.js"></script>
+<script src="src/lib/auth.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><a class="logo-link" href="index.html" aria-label="Home page"><span class="logo" aria-hidden="true">DA</span></a><div><h1>Debate Arena</h1><p>Two AI debaters. One AI judge. You pick the motion.</p></div></div>
+  <nav class="topnav" data-nav aria-label="Pages"></nav>
+  <div class="top-actions"><a class="btn ghost sm" href="https://github.com/dguywhoknows/debate-simulator" target="_blank" rel="noopener">GitHub</a><span data-ai-badge></span></div>
+</header>
+<div class="page active" data-page="debate" data-title="Debate">
+<main class="grid side">
+  <section class="card stack">
+    <h2>Set up the debate</h2>
+    <label>Motion<textarea id="motion" rows="2" style="min-height:64px">This house believes remote work is better than office work.</textarea></label>
+    <div class="row"><button class="btn sm ghost" id="randomMotion">Random motion</button></div>
+    <div class="grid cols-2">
+      <label>Mode<select id="mode"><option value="ai">AI vs AI</option><option value="human">You vs AI</option></select></label>
+      <label id="humanSideRow" class="hidden">Your side<select id="humanSide"><option value="pro">Proposition (for)</option><option value="con">Opposition (against)</option></select></label>
+    </div>
+    <div class="grid cols-2">
+      <label>Proposition persona<input class="input" id="proName" value="Dr. Ada — labor economist"></label>
+      <label>Opposition persona<input class="input" id="conName" value="Marcus — startup CEO"></label>
+    </div>
+    <div class="grid cols-2">
+      <label>Style<select id="style"><option value="formal">Formal (parliamentary)</option><option value="spicy">Spicy (sharp, witty)</option><option value="socratic">Socratic (question-driven)</option><option value="eli12">Explain like I'm 12</option></select></label>
+      <label>Rebuttal rounds<select id="rounds"><option>1</option><option selected>2</option><option>3</option></select></label>
+    </div>
+    <label>Before the debate, how much do you agree? <span class="muted" id="preVoteVal">50% for</span><input type="range" id="preVote" min="0" max="100" value="50"></label>
+    <button class="btn primary" id="start">Start debate</button>
+    <p class="small muted">Format: openings → rebuttal rounds → closings → judge's verdict. Every turn sees the full transcript so far.</p>
+    <div><h3>Library</h3><div id="library" class="library"></div></div>
+    <div id="stats" class="hidden">
+      <h3>Rhetoric analytics (computed locally)</h3>
+      <div id="statsBody"></div>
+    </div>
+  </section>
+  <section class="stack">
+    <div class="card"><div class="row between"><h2 style="margin:0">Transcript</h2><div class="row"><span class="tag" id="phase">Waiting</span><button class="btn sm ghost" id="export" disabled>Export .md</button></div></div></div>
+    <div id="transcript" class="stack"><div class="empty">Pick a motion and press <b>Start debate</b>.</div></div>
+    <div id="verdict" class="hidden card"></div>
+    <div id="postVoteCard" class="hidden card stack">
+      <h2 style="margin:0">Your vote after the debate</h2>
+      <label>How much do you agree now? <span class="muted" id="postVoteVal">50% for</span><input type="range" id="postVote" min="0" max="100" value="50"></label>
+      <div><button class="btn" id="castPost">Cast vote and see the swing</button></div>
+    </div>
+    <div id="facts" class="hidden card"></div>
+  </section>
+</main>
+<footer class="foot">Built with vanilla JS · AI via Groq/OpenRouter (bring your own free key) · <a href="https://github.com/dguywhoknows/debate-simulator">source</a></footer>
+</div>
+<div class="page" data-page="settings" data-title="Settings"></div>
+<script src="src/lib/dom.js"></script>
+<script src="src/lib/ai.js"></script>
+<script src="src/lib/router.js"></script>
+<script src="src/lib/copilot.js"></script>
+<script src="src/core.js"></script>
+<script src="src/demo.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
