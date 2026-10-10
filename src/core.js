@@ -1,4 +1,4 @@
-/* core.js — pure, DOM-free logic for Debate Arena (unit-tested in tests/). */
+/* Pure, DOM-free logic for Debate Arena (unit-tested in tests/). */
 
 var RUBRIC = ['logic', 'evidence', 'rebuttal', 'delivery'];
 

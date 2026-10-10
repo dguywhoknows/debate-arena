@@ -1,4 +1,4 @@
-:root { --accent: #d6533c; --pro: #2f7de1; --con: #d6533c; }
+:root { --accent: #a23b2c; --pro: #2f7de1; --con: #a23b2c; }
 .turn { border-left: 4px solid var(--pro); }
 .turn.con { border-left-color: var(--con); }
 .turn .who { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
